@@ -1,3 +1,6 @@
+/// Initializing my first OSC 
+/// I would explain how the speed up and down in rodio sink works in detail
+
 use std::time::Duration;
 
 use crate::{Sample, Source};
