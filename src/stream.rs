@@ -24,6 +24,46 @@ pub struct OutputStreamHandle {
 }
 
 impl OutputStream {
+    /// Returns a list of available device names
+    pub fn list_devices() -> Result<Vec<String>, StreamError> {
+        let devices = cpal::default_host()
+            .output_devices()
+            .map_err(|_| StreamError::NoDevice)?;
+
+        Ok(devices
+            .filter_map(|d| {
+                if let Ok(name) = d.name() {
+                    return Some(name);
+                }
+                None
+            })
+            .collect::<Vec<String>>())
+    }
+    
+    /// Takes a name of an available device and tries creating an output stream from it
+    /// set config to None to use the default configuration
+    pub fn try_from_device_with_name(
+        device: &String,
+        config: Option<SupportedStreamConfig>,
+    ) -> Result<(Self, OutputStreamHandle), StreamError> {
+        cpal::default_host()
+            .output_devices()
+            .map_err(|_| StreamError::NoDevice)?
+            .find_map(|d| {
+                if let Ok(name) = d.name() {
+                    if name == *device {
+                        match &config {
+                            Some(config) => {
+                                return Some(Self::try_from_device_config(&d, config.to_owned()));
+                            }
+                            None => return Some(Self::try_from_device(&d)),
+                        }
+                    }
+                }
+                None
+            }).unwrap_or_else(|| Err(StreamError::NoDevice))
+    }
+
     /// Returns a new stream & handle using the given output device and the default output
     /// configuration.
     pub fn try_from_device(
